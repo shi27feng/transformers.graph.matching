@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from fast_transformers.feature_maps import elu_feature_map
+from einops import rearrange
+from torch_scatter import scatter_sum
 
 
 class LinearAttention(nn.Module):
@@ -20,18 +22,29 @@ class LinearAttention(nn.Module):
             elu_feature_map(query_dims=in_channels)
         )
 
-    def forward(self, queries, keys, values):
-        n, l, h, e = queries.shape  # batch, length, heads, depth
-        _, _, s, d = values.shape
-        assert keys.shape[1] == values.shape[1], "key's and value's length are not matching"
-        softmax_temp = self.softmax_temp or (e ** -0.25)  # TODO: how to use this?
+    def forward(self, queries, keys, values, bi=None):
+        e = queries.shape[-1]  # batch, n_heads, length, depth
+        softmax_temp = self.softmax_temp or (e ** -0.25)
         (queries, keys) = map(lambda x: x * softmax_temp, (queries, keys))
         self.feature_map.new_feature_map(queries.device)
         q = self.feature_map.forward_queries(queries)
         k = self.feature_map.forward_keys(keys)
 
-        kv = torch.einsum("nshd, nshm -> nhmd", k, values)
-        z = 1 / (torch.einsum("nlhd, nhd -> nlh", q, k.sum(dim=1)) + self.eps)
-        v = torch.einsum("nlhd, nhmd, nlh -> nlhm", q, kv, z)
-
-        return v.contiguous()
+        if bi is None:
+            kv = torch.einsum("nshd, nshm -> nhmd", k, values)
+            z = 1 / (torch.einsum("nlhd, nhd -> nlh", q, k.sum(dim=1)) + self.eps)
+            v = torch.einsum("nlhd, nhmd, nlh -> nlhm", q, kv, z)
+        else:
+            if isinstance(bi, torch.Tensor):
+                biq = biv = bi
+            else:
+                biq, biv = bi 
+            q = q.permute(0, 2, 1, 3)
+            k = k.permute(0, 2, 1, 3)
+            # change the dimensions of keys to (N, H, L, D, 1) and values to (N, H, L, 1, D)
+            kv = torch.matmul(k.unsqueeze(-1), values.unsqueeze(-2))  # NHL(D1) \times NHL(1D) -> NHL(DD)
+            kv = scatter_sum(kv, biv, dim=-3).index_select(dim=-3, index=biq)  # NH(L)DD
+            k_ = scatter_sum(k, biv, dim=-2).index_select(dim=-2, index=biq)  # NH(L)D
+            z = 1 / torch.sum(q * k_, dim=-1)
+            v = torch.matmul(q.unsqueeze(-2), kv).squeeze(dim=-2) * z.unsqueeze(-1)  # NHL(1D) \times NHL(DD)
+        return v.permute(0, 2, 1, 3).contiguous()
