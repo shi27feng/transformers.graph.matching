@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+from torch.nn.modules.linear import Linear
+from attention import LinearAttention
+from einops import rearrange
 
 
 class AddNorm(nn.Module):
@@ -36,8 +39,45 @@ class FeedForward(nn.Module):
 
 
 class EncoderLayer(nn.Module):
-    def __init__(self):
-        super(EncoderLayer, self).__init__()
+    def __init__(self, 
+                 in_channels,
+                 hd_channels,
+                 heads=8,
+                 dropout=0.):
+        """
 
-    def forward(self):
-        return
+        """
+        super(EncoderLayer, self).__init__()
+        self.in_channels = in_channels
+        self.hd_channels = hd_channels
+        self.heads = heads
+        self.dropout = dropout
+        self.lin_kv = Linear(in_channels, hd_channels * 2, bias=False)
+        self.lin_q = Linear(in_channels, hd_channels, bias=False)
+        self.mha = LinearAttention(in_channels=(hd_channels // heads),
+                                   attention_dropout=dropout)
+
+        self.add_norm_att = AddNorm(self.hd_channels, 
+                                    False, self.dropout, self.heads)
+        self.add_norm_ffn = AddNorm(self.hd_channels, 
+                                    False, self.dropout, self.heads)
+        self.ffn = FeedForward(self.hd_channels, 
+                               self.hd_channels, self.dropout)
+
+    def forward(self, x, bi=None):
+        if isinstance(x, torch.Tensor):
+             y = w = x
+        else:
+             y, w = x
+        d = y.shape[-1] // self.heads
+        query = self.lin_q(y).view(-1, d, self.heads)
+        key, value = self.lin_kv(w).chunk(2, dim=-1)
+
+        t = self.multi_head_attn(query, 
+                                 key.view(-1, d, self.heads), 
+                                 value.view(-1, d, self.heads), 
+                                 bi).view(-1, d * self.heads)
+
+        y = self.add_norm_att(y, t)
+        return self.add_norm_ffn(y, self.ffn(y))
+

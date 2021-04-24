@@ -13,7 +13,6 @@ class LinearAttention(nn.Module):
                  eps=1e-6,
                  attention_dropout=0.1):
         super(LinearAttention, self).__init__()
-        self.in_channels = in_channels
         self.softmax_temp = softmax_temp
         self.dropout = attention_dropout
         self.eps = eps
@@ -39,12 +38,12 @@ class LinearAttention(nn.Module):
                 biq = biv = bi
             else:
                 biq, biv = bi 
-            q = q.permute(0, 2, 1, 3)
-            k = k.permute(0, 2, 1, 3)
-            # change the dimensions of keys to (N, H, L, D, 1) and values to (N, H, L, 1, D)
-            kv = torch.matmul(k.unsqueeze(-1), values.unsqueeze(-2))  # NHL(D1) \times NHL(1D) -> NHL(DD)
-            kv = scatter_sum(kv, biv, dim=-3).index_select(dim=-3, index=biq)  # NH(L)DD
-            k_ = scatter_sum(k, biv, dim=-2).index_select(dim=-2, index=biq)  # NH(L)D
+            q = q.transpose(-3, -2)
+            k = k.transpose(-3, -2)
+            # change the dimensions of keys to (...,H, L, D, 1) and values to (..., H, L, 1, D)
+            kv = torch.matmul(k.unsqueeze(-1), values.unsqueeze(-2))  # ...HL(D1) \times ...HL(1D) -> ...HL(DD)
+            kv = scatter_sum(kv, biv, dim=-3).index_select(dim=-3, index=biq)  # ...H(L)DD
+            k_ = scatter_sum(k, biv, dim=-2).index_select(dim=-2, index=biq)  # ...H(L)D
             z = 1 / torch.sum(q * k_, dim=-1)
-            v = torch.matmul(q.unsqueeze(-2), kv).squeeze(dim=-2) * z.unsqueeze(-1)  # NHL(1D) \times NHL(DD)
-        return v.permute(0, 2, 1, 3).contiguous()
+            v = torch.matmul(q.unsqueeze(-2), kv).squeeze(dim=-2) * z.unsqueeze(-1)  # ...HL(1D) \times ...HL(DD)
+        return v.transpose(-3, -2).contiguous()

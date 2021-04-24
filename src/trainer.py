@@ -17,7 +17,7 @@ from torch_geometric.transforms import OneHotDegree
 from data.ged import GEDDataset
 from data.mcs import MCSDataset
 
-from model import GraphMatch
+from model import GraphMatchTR
 from utils import parameters_count, load_checkpoint, make_checkpoint, \
     gen_pairs, calculate_ranking_correlation, calculate_prec_at_k
 from tqdm import tqdm, trange
@@ -42,7 +42,7 @@ class GraphMatchTrainer(object):
         self.synth_data_1 = []
         self.synth_data_2 = []
         self.process_dataset()
-        self.model = GraphMatch(self.args, self.num_labels, self.max_num_nodes)
+        self.model = GraphMatchTR(self.args, self.num_labels, self.max_num_nodes)
         # self.initialize_model_weights(self.model)
         self.num_params = parameters_count(self.model)
 
