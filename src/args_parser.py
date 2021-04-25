@@ -45,7 +45,12 @@ def parameter_parser():
                         type=int,
                         default=64,
                         help="The dimension of multi-head attention.")
-    
+
+    parser.add_argument("--num_enc",
+                        type=int,
+                        default=1,
+                        help="The dimension of multi-head attention.")
+
     parser.add_argument("--fc_hidden",
                         type=int,
                         default=64,
