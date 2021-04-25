@@ -33,4 +33,5 @@ class GraphMatchTR(nn.Module):
         return hs if multi_pass else h
     
     def forward(self, s, t):
+        s = self.gnn_bone()
         return 
