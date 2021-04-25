@@ -24,7 +24,7 @@ class GraphMatchTR(nn.Module):
         )
 
     def gnn_bone(self, h, adj, multi_pass):
-        num_layers = len(self.gconv_layers)
+        num_layers = len(self.gnn_)
         hs = []
         for i in range(num_layers):
             h = self.gnn_[i](h, adj)
