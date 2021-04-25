@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from fast_transformers.feature_maps import elu_feature_map
-from einops import rearrange
 from torch_scatter import scatter_sum
 
 

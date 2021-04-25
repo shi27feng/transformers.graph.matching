@@ -1,9 +1,9 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as fn
-from layer import EncoderLayer
 from torch_geometric.nn.conv import GCNConv
 from torch_geometric.nn.glob import global_mean_pool
+
+from layer import EncoderLayer
 
 
 class GraphMatchTR(nn.Module):

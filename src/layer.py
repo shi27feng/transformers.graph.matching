@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.nn.modules.linear import Linear
+
 from attention import LinearAttention
-from einops import rearrange
 
 
 class AddNorm(nn.Module):
