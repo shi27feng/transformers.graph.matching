@@ -1,4 +1,4 @@
-# transformers.graph.matching
+# Graph Matching with Linear Transformers
 
 Applying the cross-attention/similarity matrix of Transformer Architecture to graph matching problem
 
