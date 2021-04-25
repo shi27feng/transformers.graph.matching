@@ -33,17 +33,16 @@ class GraphMatchTrainer(object):
         :param args: Arguments object.
         """
         self.args = args
-        self.training_graphs = None
-        self.testing_graphs = None
+        self.training_graphs = self.testing_graphs = None
         self.norm_metric_matrix = None
         self.optimizer = None
         self.num_labels = 0
         self.max_num_nodes = 0
-        self.synth_data_1 = []
-        self.synth_data_2 = []
+        self.synth_data_1 = self.synth_data_2 = []
         self.process_dataset()
         self.model = GraphMatchTR(self.args)
         self.num_params = parameters_count(self.model)
+        self.rho = self.tau = self.prec_at_10 = self.prec_at_20 = self.model_error = 0.
 
     def process_dataset(self):
         """
