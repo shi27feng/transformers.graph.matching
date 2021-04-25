@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as fn
 from layer import EncoderLayer
 from torch_geometric.nn.conv import GCNConv
+from torch_geometric.nn.glob import global_mean_pool
 
 
 class GraphMatchTR(nn.Module):
@@ -11,9 +12,9 @@ class GraphMatchTR(nn.Module):
         self.args = args
         self.gnn_dims = [args.num_labels] + [int(n) for n in args.gnn_dims.split(',')]
         self.mha_dim = args.mha_dim
-        
-        self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i], 
-                        self.gnn_dims[i + 1]) for i in range(len(self.gnn_dims) - 1)])
+
+        self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
+                                           self.gnn_dims[i + 1]) for i in range(len(self.gnn_dims) - 1)])
         self.encoder = EncoderLayer(self.gnn_dims[-1], args.mha_dim)
         self.fc_ = nn.Sequential(
             nn.Linear(args.mha_dim, args.fc_hidden),
@@ -31,7 +32,11 @@ class GraphMatchTR(nn.Module):
                 h = fn.dropout(fn.relu(h, inplace=True), p=self.args.dropout, training=self.training)
             hs.append(h.clone())
         return hs if multi_pass else h
-    
+
     def forward(self, s, t):
-        s = self.gnn_bone()
-        return 
+        xs = self.gnn_bone(s.x, s.edge_index, False)
+        xt = self.gnn_bone(t.x, t.edge_index, False)
+        xs_ = self.encoder((xs, xt), (s.batch, t.batch))
+        xt_ = self.encoder((xt, xs), (t.batch, s.batch))
+        return self.fc_(global_mean_pool(xs_, s.batch) +
+                        global_mean_pool(xt_, t.batch))

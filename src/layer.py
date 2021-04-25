@@ -39,7 +39,7 @@ class FeedForward(nn.Module):
 
 
 class EncoderLayer(nn.Module):
-    def __init__(self, 
+    def __init__(self,
                  in_channels,
                  hd_channels,
                  heads=8,
@@ -57,27 +57,26 @@ class EncoderLayer(nn.Module):
         self.mha = LinearAttention(in_channels=(hd_channels // heads),
                                    attention_dropout=dropout)
 
-        self.add_norm_att = AddNorm(self.hd_channels, 
+        self.add_norm_att = AddNorm(self.hd_channels,
                                     False, self.dropout, self.heads)
-        self.add_norm_ffn = AddNorm(self.hd_channels, 
+        self.add_norm_ffn = AddNorm(self.hd_channels,
                                     False, self.dropout, self.heads)
-        self.ffn = FeedForward(self.hd_channels, 
+        self.ffn = FeedForward(self.hd_channels,
                                self.hd_channels, self.dropout)
 
     def forward(self, x, bi=None):
         if isinstance(x, torch.Tensor):
-             y = w = x
+            y = w = x
         else:
-             y, w = x
+            y, w = x
         d = y.shape[-1] // self.heads
         query = self.lin_q(y).view(-1, d, self.heads)
         key, value = self.lin_kv(w).chunk(2, dim=-1)
 
-        t = self.multi_head_attn(query, 
-                                 key.view(-1, d, self.heads), 
-                                 value.view(-1, d, self.heads), 
-                                 bi).view(-1, d * self.heads)
+        t = self.mha(query,
+                     key.view(-1, d, self.heads),
+                     value.view(-1, d, self.heads),
+                     bi).view(-1, d * self.heads)
 
         y = self.add_norm_att(y, t)
         return self.add_norm_ffn(y, self.ffn(y))
-

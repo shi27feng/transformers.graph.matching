@@ -42,8 +42,7 @@ class GraphMatchTrainer(object):
         self.synth_data_1 = []
         self.synth_data_2 = []
         self.process_dataset()
-        self.model = GraphMatchTR(self.args, self.num_labels, self.max_num_nodes)
-        # self.initialize_model_weights(self.model)
+        self.model = GraphMatchTR(self.args)
         self.num_params = parameters_count(self.model)
 
     def process_dataset(self):
@@ -51,7 +50,7 @@ class GraphMatchTrainer(object):
         Downloading and processing dataset.
         """
         print("\nPreparing dataset.\n")
-        path = osp.join(self.args.dataset_root, self.args.metric, self.dataset_name)
+        path = osp.join(self.args.dataset_root, self.args.metric, self.args.dataset_name)
         if self.args.metric is 'GED':
             self.training_graphs = GEDDataset(path, self.args.dataset_name, train=True)
             self.testing_graphs = GEDDataset(path, self.args.dataset_name, train=False)
@@ -252,7 +251,7 @@ class GraphMatchTrainer(object):
                 data = self.transform((source_batch, target_batch))
 
                 start = time.process_time()
-                self.model(data)
+                self.model(data["g1"], data["g2"])
                 t[i] = (time.process_time() - start)
                 i += 1
                 tq.update()
