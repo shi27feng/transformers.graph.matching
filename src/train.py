@@ -1,6 +1,6 @@
 from utils import tab_printer
 from trainer import GraphMatchTrainer
-from parser import parameter_parser
+from args_parser import parameter_parser
 
 
 def main():
@@ -20,13 +20,13 @@ def main():
     if args.notify:
         import os, sys
         if sys.platform == 'linux':
-            os.system('notify-send WaveSim "Program is finished."')
+            os.system('notify-send GraphMatchTR "Program is finished."')
         elif sys.platform == 'posix':
             os.system("""
-                      osascript -e 'display notification "WaveSim" with title "Program is finished."'
+                      osascript -e 'display notification "GraphMatchTR" with title "Program is finished."'
                       """)
         else:
-            raise NotImplementedError('No support for this OS.')
+            raise NotImplementedError('Not support for this OS.')
 
 
 if __name__ == "__main__":

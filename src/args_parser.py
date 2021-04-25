@@ -36,20 +36,20 @@ def parameter_parser():
                         default=200,  # 350,
                         help="Number of training epochs. Default is 350.")
 
-    parser.add_argument("--gconv-dims",
+    parser.add_argument("--gnn_dims",
                         type=str,
-                        default='64,32',
+                        default='32,64',
                         help="Filters (neurons) in primal graph convolutions. Default is (64, 32).")
 
-    parser.add_argument("--conv2d-dims",
-                        type=str,
-                        default='16,32',
-                        help="Filters dimensions of 2D convolutions. Default is (16,32).")
-
-    parser.add_argument("--fc-dims",
-                        type=str,
-                        default='16,1',
-                        help="The dimensions of fully-connected layers. Default is (16,1).")
+    parser.add_argument("--mha_dim",
+                        type=int,
+                        default=64,
+                        help="The dimension of multi-head attention.")
+    
+    parser.add_argument("--fc_hidden",
+                        type=int,
+                        default=64,
+                        help="The hidden dimension of fully-connected layer.")
 
     parser.add_argument("--kernel-size",
                         type=int,
