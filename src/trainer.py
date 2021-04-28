@@ -229,7 +229,7 @@ class GraphMatchTrainer(object):
             plt.plot([*range(0, self.args.epochs, 10)], loss_list_test, label="Validation")
             plt.ylim([0, 0.01])
             plt.legend()
-            filename = self.args.dataset
+            filename = self.args.dataset_name
             filename += '_' + self.args.gnn_operator
             filename = filename + str(self.args.epochs) + '.pdf'
             plt.savefig(filename)
@@ -284,7 +284,7 @@ class GraphMatchTrainer(object):
             data = self.transform((source_batch, target_batch))
             target = data["target"]
             ground_truth[i] = target
-            prediction = self.model(data)
+            prediction = self.model(data['g1'], data['g2'])
             prediction_mat[i] = prediction.detach().numpy()
 
             scores[i] = fn.mse_loss(prediction, target, reduction='none').detach().numpy()
