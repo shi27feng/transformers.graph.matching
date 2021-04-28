@@ -49,7 +49,7 @@ class GraphMatchTrainer(object):
         """
         print("\nPreparing dataset.\n")
         path = osp.join(self.args.dataset_root, self.args.metric, self.args.dataset_name)
-        if self.args.metric is 'GED':
+        if self.args.metric is 'ged':
             self.training_graphs = GEDDataset(path, self.args.dataset_name, train=True)
             self.testing_graphs = GEDDataset(path, self.args.dataset_name, train=False)
             self.norm_metric_matrix = self.training_graphs.norm_ged
@@ -94,6 +94,7 @@ class GraphMatchTrainer(object):
                 g.i = g.i + real_data_size
 
         self.num_labels = self.training_graphs.num_features
+        self.args.num_labels = self.training_graphs.num_features
 
     def create_batches(self):
         """
@@ -139,9 +140,8 @@ class GraphMatchTrainer(object):
         self.optimizer.zero_grad()
         data = self.transform(data)
         target = data["target"]
-        prediction = self.model(data)
-        loss = fn.mse_loss(prediction, target, reduction='sum') + \
-            self.model.loss_prop * self.model.diff_dist  # / self.args.batch_size
+        prediction = self.model(data['g1'], data['g2'])
+        loss = fn.mse_loss(prediction, target, reduction='sum')
         loss.backward()
         self.optimizer.step()
         return loss.item()
@@ -168,7 +168,7 @@ class GraphMatchTrainer(object):
         self.model.train()
         prev_epoch = 0
         loss_list = []
-        checkpoint_root = osp.join(self.args.checkpoint_path, self.args.dataset)
+        checkpoint_root = osp.join(self.args.checkpoint_path, self.args.dataset_name)
         checkpoint_path = osp.join(checkpoint_root, 'ged.pt')
         if self.args.save_model and osp.exists(checkpoint_path):
             # checkpoint_path = osp.join(self.args.checkpoint_path, self.args.dataset, '_ged')
@@ -193,7 +193,7 @@ class GraphMatchTrainer(object):
                         target_batch = Batch.from_data_list(self.training_graphs[:cnt_train].shuffle())
                         data = self.transform((source_batch, target_batch))
                         target = data["target"]
-                        prediction = self.model(data)
+                        prediction = self.model(data['g1'], data['g2'])
 
                         scores[i] = fn.mse_loss(prediction, target, reduction='none').detach()
                         t.update(cnt_train)

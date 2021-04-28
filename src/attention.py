@@ -39,6 +39,7 @@ class LinearAttention(nn.Module):
                 biq, biv = bi 
             q = q.transpose(-3, -2)
             k = k.transpose(-3, -2)
+            values = values.transpose(-3, -2)
             # change the dimensions of keys to (...,H, L, D, 1) and values to (..., H, L, 1, D)
             kv = torch.matmul(k.unsqueeze(-1), values.unsqueeze(-2))  # ...HL(D1) \times ...HL(1D) -> ...HL(DD)
             kv = scatter_sum(kv, biv, dim=-3).index_select(dim=-3, index=biq)  # ...H(L)DD

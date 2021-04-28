@@ -14,7 +14,7 @@ def parameter_parser():
 
     parser.add_argument("--dataset_name",
                         nargs="?",
-                        default="linux",
+                        default="LINUX",
                         help="Dataset name. Default is LINUX")
     
     parser.add_argument("--dataset_root",

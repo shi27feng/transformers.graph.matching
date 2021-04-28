@@ -45,4 +45,4 @@ class GraphMatchTR(nn.Module):
         xs_ = self.enc_pass((xs, xt), (s.batch, t.batch))
         xt_ = self.enc_pass((xt, xs), (t.batch, s.batch))
         return self.fc_(global_mean_pool(xs_, s.batch) +
-                        global_mean_pool(xt_, t.batch))
+                        global_mean_pool(xt_, t.batch)).squeeze(-1)
