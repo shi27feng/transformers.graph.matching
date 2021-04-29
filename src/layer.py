@@ -6,8 +6,8 @@ from attention import LinearAttention
 
 
 class AddNorm(nn.Module):
-    def __init__(self, normalized_shape, beta, dropout, heads, **kwargs):
-        super(AddNorm, self).__init__(**kwargs)
+    def __init__(self, normalized_shape, beta, dropout):
+        super(AddNorm, self).__init__()
         self.dropout = nn.Dropout(dropout)
         self.ln = nn.LayerNorm(normalized_shape)
         self.beta = beta
@@ -57,12 +57,9 @@ class EncoderLayer(nn.Module):
         self.mha = LinearAttention(in_channels=(hd_channels // heads),
                                    attention_dropout=dropout)
 
-        self.add_norm_att = AddNorm(self.hd_channels,
-                                    False, self.dropout, self.heads)
-        self.add_norm_ffn = AddNorm(self.hd_channels,
-                                    False, self.dropout, self.heads)
-        self.ffn = FeedForward(self.hd_channels,
-                               self.hd_channels, self.dropout)
+        self.add_norm_att = AddNorm(self.hd_channels, False, self.dropout)
+        self.add_norm_ffn = AddNorm(self.hd_channels, False, self.dropout)
+        self.ffn = FeedForward(self.hd_channels, self.hd_channels, self.dropout)
 
     def forward(self, x, bi=None):
         if isinstance(x, torch.Tensor):
