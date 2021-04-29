@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import re
 
 import torch
 import torch.nn.functional as fn
@@ -49,7 +50,7 @@ class GraphMatchTrainer(object):
         """
         print("\nPreparing dataset.\n")
         path = osp.join(self.args.dataset_root, self.args.metric, self.args.dataset_name)
-        if self.args.metric is 'ged':
+        if bool(re.search('(ged|GED)', self.args.metric)):
             self.training_graphs = GEDDataset(path, self.args.dataset_name, train=True)
             self.testing_graphs = GEDDataset(path, self.args.dataset_name, train=False)
             self.norm_metric_matrix = self.training_graphs.norm_ged

@@ -1,6 +1,6 @@
-from utils import tab_printer
-from trainer import GraphMatchTrainer
 from args_parser import parameter_parser
+from trainer import GraphMatchTrainer
+from utils import tab_printer
 
 
 def main():

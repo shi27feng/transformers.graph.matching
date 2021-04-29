@@ -19,7 +19,8 @@ class GraphMatchTR(nn.Module):
                                        for i in range(len(self.gnn_dims) - 1)])
         self.fc_ = nn.Sequential(
             nn.Linear(args.mha_dim, args.fc_hidden),
-            nn.LeakyReLU(),
+            # nn.LeakyReLU(),
+            nn.SiLU(),
             nn.Dropout(p=0.3),
             nn.Linear(args.fc_hidden, 1)
         )
@@ -32,8 +33,8 @@ class GraphMatchTR(nn.Module):
             xs_ = self.gnn_[i](xs, adj_s)
             xt_ = self.gnn_[i](xt, adj_t)
             if i is not (num_layers - 1):
-                xs_ = fn.dropout(fn.relu(xs_, inplace=True), p=self.args.dropout, training=self.training)
-                xt_ = fn.dropout(fn.relu(xt_, inplace=True), p=self.args.dropout, training=self.training)
+                xs_ = fn.dropout(fn.silu(xs_, inplace=True), p=self.args.dropout, training=self.training)
+                xt_ = fn.dropout(fn.silu(xt_, inplace=True), p=self.args.dropout, training=self.training)
 
             xs = self.encoder_[i]((xs_, xt_), (s.batch, t.batch))
             xt = self.encoder_[i]((xt_, xs_), (t.batch, s.batch))

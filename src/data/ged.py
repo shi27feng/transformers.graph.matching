@@ -88,7 +88,7 @@ class GEDDataset(InMemoryDataset):
         path = self.processed_paths[0] if train else self.processed_paths[1]
         self.data, self.slices = torch.load(path)
         path = osp.join(self.processed_dir, '{}_ged.pt'.format(self.name))
-        #if not osp.exists(path):
+        # if not osp.exists(path):
         self.process()
         self.ged = torch.load(path)
         path = osp.join(self.processed_dir, '{}_norm_ged.pt'.format(self.name))
