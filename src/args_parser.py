@@ -88,7 +88,7 @@ def parameter_parser():
 
     parser.add_argument("--learning-rate",
                         type=float,
-                        default=0.001,
+                        default=1e-4,
                         help="Learning rate. Default is 0.001.")
 
     parser.add_argument("--weight-decay",
