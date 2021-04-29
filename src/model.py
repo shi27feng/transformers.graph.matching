@@ -15,8 +15,8 @@ class GraphMatchTR(nn.Module):
 
         self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
                                            self.gnn_dims[i + 1]) for i in range(len(self.gnn_dims) - 1)])
-        self.encoder_ = nn.ModuleList([EncoderLayer(self.gnn_dims[-1],
-                                                    args.mha_dim) for _ in range(args.num_enc)])
+        self.encoder_ = nn.ModuleList([EncoderLayer(self.gnn_dims[i + 1], self.gnn_dims[i + 1])
+                                       for i in range(len(self.gnn_dims) - 1)])
         self.fc_ = nn.Sequential(
             nn.Linear(args.mha_dim, args.fc_hidden),
             nn.LeakyReLU(),
@@ -24,25 +24,19 @@ class GraphMatchTR(nn.Module):
             nn.Linear(args.fc_hidden, 1)
         )
 
-    def gnn_bone(self, h, adj, multi_pass):
-        num_layers = len(self.gnn_)
-        hs = []
-        for i in range(num_layers):
-            h = self.gnn_[i](h, adj)
-            if i is not (num_layers - 1):
-                h = fn.dropout(fn.relu(h, inplace=True), p=self.args.dropout, training=self.training)
-            hs.append(h.clone())
-        return hs if multi_pass else h
-
-    def enc_pass(self, x, bi):
-        for enc in self.encoder_:
-            x = enc(x, bi)
-        return x
-
     def forward(self, s, t):
-        xs = self.gnn_bone(s.x, s.edge_index, False)
-        xt = self.gnn_bone(t.x, t.edge_index, False)
-        xs_ = self.enc_pass((xs, xt), (s.batch, t.batch))
-        xt_ = self.enc_pass((xt, xs), (t.batch, s.batch))
-        return self.fc_(global_mean_pool(xs_, s.batch) +
-                        global_mean_pool(xt_, t.batch)).squeeze(-1)
+        num_layers = len(self.gnn_)
+        xs, xt = s.x, t.x
+        adj_s, adj_t = s.edge_index, t.edge_index
+        for i in range(num_layers):
+            xs_ = self.gnn_[i](xs, adj_s)
+            xt_ = self.gnn_[i](xt, adj_t)
+            if i is not (num_layers - 1):
+                xs_ = fn.dropout(fn.relu(xs_, inplace=True), p=self.args.dropout, training=self.training)
+                xt_ = fn.dropout(fn.relu(xt_, inplace=True), p=self.args.dropout, training=self.training)
+
+            xs = self.encoder_[i]((xs_, xt_), (s.batch, t.batch))
+            xt = self.encoder_[i]((xt_, xs_), (t.batch, s.batch))
+
+        return self.fc_(global_mean_pool(xs, s.batch) +
+                        global_mean_pool(xt, t.batch)).squeeze(-1)
