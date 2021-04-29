@@ -13,6 +13,8 @@ class GraphMatchTR(nn.Module):
         self.gnn_dims = [args.num_labels] + [int(n) for n in args.gnn_dims.split(',')]
         self.mha_dim = args.mha_dim
 
+        self.bn_ = nn.ModuleList([nn.BatchNorm1d(num_features=self.gnn_dims[i])
+                                  for i in range(len(self.gnn_dims) - 1)])
         self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
                                            self.gnn_dims[i + 1]) for i in range(len(self.gnn_dims) - 1)])
         self.encoder_ = nn.ModuleList([EncoderLayer(self.gnn_dims[i + 1], self.gnn_dims[i + 1])
@@ -30,8 +32,8 @@ class GraphMatchTR(nn.Module):
         xs, xt = s.x, t.x
         adj_s, adj_t = s.edge_index, t.edge_index
         for i in range(num_layers):
-            xs_ = self.gnn_[i](xs, adj_s)
-            xt_ = self.gnn_[i](xt, adj_t)
+            xs_ = self.gnn_[i](self.bn_[i](xs), adj_s)
+            xt_ = self.gnn_[i](self.bn_[i](xt), adj_t)
             if i is not (num_layers - 1):
                 xs_ = fn.dropout(fn.silu(xs_, inplace=True), p=self.args.dropout, training=self.training)
                 xt_ = fn.dropout(fn.silu(xt_, inplace=True), p=self.args.dropout, training=self.training)
