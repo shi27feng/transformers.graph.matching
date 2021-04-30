@@ -67,13 +67,13 @@ class EncoderLayer(nn.Module):
         else:
             y, w = x
         d = y.shape[-1] // self.heads
-        query = self.lin_q(y).view(-1, d, self.heads)
+        query = self.lin_q(y).view(-1, self.heads, d)
         key, value = self.lin_kv(w).chunk(2, dim=-1)
 
         t = self.mha(query,
-                     key.view(-1, d, self.heads),
-                     value.view(-1, d, self.heads),
-                     bi).view(-1, d * self.heads)
+                     key.view(-1, self.heads, d),
+                     value.view(-1, self.heads, d),
+                     bi).view(-1, self.heads * d)
 
         y = self.add_norm_att(y, t)
         return self.add_norm_ffn(y, self.ffn(y))
