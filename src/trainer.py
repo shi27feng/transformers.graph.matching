@@ -40,7 +40,10 @@ class GraphMatchTrainer(object):
         self.max_num_nodes = 0
         self.synth_data_1 = self.synth_data_2 = []
         self.process_dataset()
+
+        self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
         self.model = GraphMatchTR(self.args)
+        self.model = self.model.to(self.device)
         self.num_params = parameters_count(self.model)
         self.rho = self.tau = self.prec_at_10 = self.prec_at_20 = self.model_error = 0.
 
@@ -140,8 +143,8 @@ class GraphMatchTrainer(object):
         """
         self.optimizer.zero_grad()
         data = self.transform(data)
-        target = data["target"]
-        prediction = self.model(data['g1'], data['g2'])
+        target = data["target"].to(self.device)
+        prediction = self.model(data['g1'].to(self.device), data['g2'].to(self.device))
         loss = fn.mse_loss(prediction, target, reduction='sum')
         loss.backward()
         self.optimizer.step()
@@ -194,9 +197,9 @@ class GraphMatchTrainer(object):
                         target_batch = Batch.from_data_list(self.training_graphs[:cnt_train].shuffle())
                         data = self.transform((source_batch, target_batch))
                         target = data["target"]
-                        prediction = self.model(data['g1'], data['g2'])
+                        prediction = self.model(data['g1'].to(self.device), data['g2'].to(self.device))
 
-                        scores[i] = fn.mse_loss(prediction, target, reduction='none').detach()
+                        scores[i] = fn.mse_loss(prediction, target.to(self.device), reduction='none').cpu().detach()
                         t.update(cnt_train)
 
                     t.close()
@@ -250,7 +253,7 @@ class GraphMatchTrainer(object):
                 data = self.transform((source_batch, target_batch))
 
                 start = time.process_time()
-                self.model(data["g1"], data["g2"])
+                self.model(data["g1"].to(self.device), data["g2"].to(self.device))
                 t[i] = (time.process_time() - start)
                 i += 1
                 tq.update()
@@ -283,12 +286,12 @@ class GraphMatchTrainer(object):
             target_batch = Batch.from_data_list(self.training_graphs)
 
             data = self.transform((source_batch, target_batch))
-            target = data["target"]
-            ground_truth[i] = target
-            prediction = self.model(data['g1'], data['g2'])
-            prediction_mat[i] = prediction.detach().numpy()
+            target = data["target"].to(self.device)
+            prediction = self.model(data['g1'].to(self.device), data['g2'].to(self.device))
 
-            scores[i] = fn.mse_loss(prediction, target, reduction='none').detach().numpy()
+            scores[i] = fn.mse_loss(prediction, target, reduction='none').cpu().detach().numpy()
+            prediction_mat[i] = prediction.cpu().detach().numpy()
+            ground_truth[i] = target.cpu().detach().numpy()
 
             rho_list.append(calculate_ranking_correlation(spearmanr, prediction_mat[i], ground_truth[i]))
             tau_list.append(calculate_ranking_correlation(kendalltau, prediction_mat[i], ground_truth[i]))
