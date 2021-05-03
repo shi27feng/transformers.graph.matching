@@ -652,3 +652,33 @@ def load_checkpoint(path, model, optimizer):
     epoch = checkpoint['epoch']
     loss = checkpoint['loss']
     return epoch, loss
+
+
+def plot_grad_flow(named_parameters, path):
+    ave_grads = []
+    layers = []
+    empty_grads = []
+    # total_norm = 0
+    for n, p in named_parameters:
+        if p.requires_grad and not (("bias" in n) or ("norm" in n) or ("bn" in n) or ("gain" in n)):
+            if p.grad is not None:
+                # writer.add_scalar('gradients/' + n, p.grad.norm(2).item(), step)
+                # writer.add_histogram('gradients/' + n, p.grad, step)
+                # total_norm += p.grad.data.norm(2).item()
+                layers.append(n)
+                ave_grads.append(p.grad.abs().mean().cpu().item())
+            else:
+                empty_grads.append({n: p.mean().cpu().item()})
+    # total_norm = total_norm ** (1. / 2)
+    # print("Norm : ", total_norm)
+    plt.tight_layout()
+    plt.plot(ave_grads, alpha=0.3, color="b")
+    plt.hlines(0, 0, len(ave_grads) + 1, linewidth=1.5, color="k")
+    plt.xticks(np.arange(0, len(ave_grads), 1), layers, rotation="vertical", fontsize=4)
+    plt.xlim(xmin=0, xmax=len(ave_grads))
+    plt.xlabel("Layers")
+    plt.ylabel("average gradient")
+    plt.title("Gradient flow")
+    plt.grid(True)
+    plt.savefig(path, dpi=300)
+    plt.clf()
