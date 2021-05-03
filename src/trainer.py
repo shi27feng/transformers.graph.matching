@@ -19,7 +19,8 @@ from data.mcs import MCSDataset
 
 from model import GraphMatchTR
 from utils import parameters_count, load_checkpoint, make_checkpoint, \
-    gen_pairs, calculate_ranking_correlation, calculate_prec_at_k
+    gen_pairs, calculate_ranking_correlation, calculate_prec_at_k, \
+    plot_grad_flow
 from tqdm import tqdm, trange
 
 
@@ -135,7 +136,7 @@ class GraphMatchTrainer(object):
         new_data["target"] = torch.from_numpy(np.exp([(-el) for el in normalized_ged])).view(-1).float()
         return new_data
 
-    def process_batch(self, data):
+    def process_batch(self, data, epoch, batch, path):
         """
         Forward pass with a data.
         :param data: Data that is essentially pair of batches, for source and target graphs.
@@ -148,6 +149,8 @@ class GraphMatchTrainer(object):
         loss = fn.mse_loss(prediction, target, reduction='sum')
         loss.backward()
         self.optimizer.step()
+        if epoch % 100 == 0 and epoch != 0:
+            plot_grad_flow(self.model.named_parameters(), osp.join(path, '%4d_%d.png' % (epoch, batch)))
         return loss.item()
 
     # def initialize_model_weights(self, model):
@@ -209,8 +212,8 @@ class GraphMatchTrainer(object):
             batches = self.create_batches()
             main_index = 0
             loss_sum = 0
-            for _, batch_pair in tqdm(enumerate(batches), total=len(batches), desc="Batches"):
-                loss_score = self.process_batch(batch_pair)
+            for i, batch_pair in tqdm(enumerate(batches), total=len(batches), desc="Batches"):
+                loss_score = self.process_batch(batch_pair, epoch, i, self.args.gradflow_path)
                 main_index = main_index + batch_pair[0].num_graphs
                 loss_sum = loss_sum + loss_score
             loss = loss_sum / main_index
