@@ -12,13 +12,15 @@ class GraphMatchTR(nn.Module):
         self.args = args
         self.gnn_dims = [args.num_labels] + [int(n) for n in args.gnn_dims.split(',')]
         self.mha_dim = args.mha_dim
-
+        num_layers = len(self.gnn_dims) - 1
+        num_batch_norms = num_layers if args.all_batch_norm else 1
         self.bn_ = nn.ModuleList([nn.BatchNorm1d(num_features=self.gnn_dims[i])
-                                  for i in range(len(self.gnn_dims) - 1)])
+                                  for i in range(num_batch_norms)])
+
         self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
-                                           self.gnn_dims[i + 1]) for i in range(len(self.gnn_dims) - 1)])
+                                           self.gnn_dims[i + 1]) for i in range(num_layers)])
         self.encoder_ = nn.ModuleList([EncoderLayer(self.gnn_dims[i + 1], self.gnn_dims[i + 1])
-                                       for i in range(len(self.gnn_dims) - 1)])
+                                       for i in range(num_layers)])
         self.fc_ = nn.Sequential(
             nn.Linear(args.mha_dim, args.fc_hidden),
             # nn.LeakyReLU(),
@@ -32,8 +34,10 @@ class GraphMatchTR(nn.Module):
         xs, xt = s.x, t.x
         adj_s, adj_t = s.edge_index, t.edge_index
         for i in range(num_layers):
-            xs_ = self.gnn_[i](self.bn_[i](xs), adj_s)
-            xt_ = self.gnn_[i](self.bn_[i](xt), adj_t)
+            if i == 0 or self.args.all_batch_norm:
+                xs, xt = self.bn_[i](xs), self.bn_[i](xt)
+            xs_ = self.gnn_[i](xs, adj_s)
+            xt_ = self.gnn_[i](xt, adj_t)
             if i is not (num_layers - 1):
                 xs_ = fn.dropout(fn.silu(xs_, inplace=True), p=self.args.dropout, training=self.training)
                 xt_ = fn.dropout(fn.silu(xt_, inplace=True), p=self.args.dropout, training=self.training)

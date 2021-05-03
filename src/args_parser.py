@@ -66,6 +66,11 @@ def parameter_parser():
                         default=True,
                         help="Whether to use residual adjacency matrix. Default is False.")
 
+    parser.add_argument("--all-batch-norm",
+                        type=bool,
+                        default=False,
+                        help="Add BatchNorm to every encoder layer. Default is False.")
+
     parser.add_argument("--stride",
                         type=int,
                         default=1,
