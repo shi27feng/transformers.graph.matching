@@ -681,8 +681,4 @@ def plot_grad_flow(named_parameters, path):
     plt.title("Gradient flow")
     plt.grid(True)
     plt.savefig(path, dpi=300)
-<<<<<<< HEAD
     plt.clf()
-=======
-    plt.clf()
->>>>>>> fc0efdaaad911c2580725e525ef92c3e2c7b9157
