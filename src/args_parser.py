@@ -33,17 +33,17 @@ def parameter_parser():
 
     parser.add_argument("--epochs",
                         type=int,
-                        default=200,  # 350,
+                        default=3000,  # 350,
                         help="Number of training epochs. Default is 350.")
 
     parser.add_argument("--gnn_dims",
                         type=str,
-                        default='32,64',
+                        default='32,64,128,128,128',
                         help="Filters (neurons) in primal graph convolutions. Default is (64, 32).")
 
     parser.add_argument("--mha_dim",
                         type=int,
-                        default=64,
+                        default=128,
                         help="The dimension of multi-head attention.")
 
     parser.add_argument("--num_enc",
@@ -53,7 +53,7 @@ def parameter_parser():
 
     parser.add_argument("--fc_hidden",
                         type=int,
-                        default=64,
+                        default=128,
                         help="The hidden dimension of fully-connected layer.")
 
     parser.add_argument("--kernel-size",
@@ -125,6 +125,10 @@ def parameter_parser():
     parser.add_argument("--checkpoint-path",
                         type=str,
                         default='checkpoint')
+
+    parser.add_argument("--gradflow-path",
+                        type=str,
+                        default='gradflow')
 
     parser.add_argument("--heat-scale",
                         type=float,

@@ -26,7 +26,7 @@ def _norm(edge_index,
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
 
     if edge_weight is None:
-        edge_weight = torch.ones_like(edge_index.size(1),
+        edge_weight = torch.ones_like(edge_index[0],
                                       dtype=torch.float)
 
     if add_self_loops:
