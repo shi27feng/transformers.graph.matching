@@ -20,8 +20,7 @@ def _norm(edge_index,
           num_nodes=None,
           improved=False,
           heat_scale=0.,
-          add_self_loops=True,
-          dtype=None):
+          add_self_loops=True):
     fill_value = 2. if improved else 1.
 
     num_nodes = maybe_num_nodes(edge_index, num_nodes)
