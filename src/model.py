@@ -3,7 +3,7 @@ import torch.nn.functional as fn
 from torch_geometric.nn.conv import GCNConv
 from torch_geometric.nn.glob import global_mean_pool
 
-from layer import EncoderLayer
+from layer import EncoderLayer, GraphConv
 
 
 class GraphMatchTR(nn.Module):
@@ -17,8 +17,13 @@ class GraphMatchTR(nn.Module):
         self.bn_ = nn.ModuleList([nn.BatchNorm1d(num_features=self.gnn_dims[i])
                                   for i in range(num_batch_norms)])
 
-        self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
-                                           self.gnn_dims[i + 1]) for i in range(num_layers)])
+        if args.heat_scale > 0.:
+            self.gnn_ = nn.ModuleList([GraphConv(self.gnn_dims[i],
+                                                 self.gnn_dims[i + 1],
+                                                 heat_scale=args.heat_scale) for i in range(num_layers)])
+        else:
+            self.gnn_ = nn.ModuleList([GCNConv(self.gnn_dims[i],
+                                               self.gnn_dims[i + 1]) for i in range(num_layers)])
         self.encoder_ = nn.ModuleList([EncoderLayer(self.gnn_dims[i + 1], self.gnn_dims[i + 1])
                                        for i in range(num_layers)])
         self.fc_ = nn.Sequential(

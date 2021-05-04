@@ -126,6 +126,11 @@ def parameter_parser():
                         type=str,
                         default='checkpoint')
 
+    parser.add_argument("--heat-scale",
+                        type=float,
+                        default=2.,
+                        help="The scale of the heat kernel.")
+
     parser.set_defaults(plot=True)
     parser.set_defaults(measure_time=False)
     parser.set_defaults(notify=False)

@@ -1,8 +1,110 @@
+from abc import ABC
+from typing import Union, Tuple
+
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.nn.modules.linear import Linear
+from torch_geometric.nn import MessagePassing
+from torch_geometric.typing import OptPairTensor, Size, OptTensor, Adj
+from torch_geometric.utils import add_remaining_self_loops
+from torch_geometric.utils.num_nodes import maybe_num_nodes
+from torch_scatter import scatter_add
+from torch_sparse import matmul, SparseTensor
 
 from attention import LinearAttention
+
+
+def _norm(edge_index,
+          edge_weight=None,
+          num_nodes=None,
+          improved=False,
+          heat_scale=0.,
+          add_self_loops=True,
+          dtype=None):
+    fill_value = 2. if improved else 1.
+
+    num_nodes = maybe_num_nodes(edge_index, num_nodes)
+
+    if edge_weight is None:
+        edge_weight = torch.ones_like(edge_index.size(1),
+                                      dtype=torch.float)
+
+    if add_self_loops:
+        edge_index, tmp_edge_weight = add_remaining_self_loops(
+            edge_index, edge_weight, fill_value, num_nodes)
+        assert tmp_edge_weight is not None
+        edge_weight = tmp_edge_weight
+
+    row, col = edge_index[0], edge_index[1]
+    deg = scatter_add(edge_weight, col, dim=0, dim_size=num_nodes)
+    deg_inv_sqrt = deg.pow_(-0.5)
+    deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0)
+    laplace = deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
+    if heat_scale > 0.:
+        return edge_index, torch.exp(-heat_scale * laplace)
+    return edge_index, laplace
+
+
+class GraphConv(MessagePassing, ABC):
+
+    def __init__(self,
+                 in_channels: Union[int, Tuple[int, int]],
+                 out_channels: int,
+                 heat_scale=0.,
+                 aggr: str = 'add',
+                 bias: bool = True, **kwargs):
+        super(GraphConv, self).__init__(aggr=aggr, **kwargs)
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.heat_scale = heat_scale
+
+        if isinstance(in_channels, int):
+            in_channels = (in_channels, in_channels)
+
+        self.lin_l = Linear(in_channels[0], out_channels, bias=bias)
+        self.lin_r = Linear(in_channels[1], out_channels, bias=False)
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.lin_l.reset_parameters()
+        self.lin_r.reset_parameters()
+
+    def forward(self, x: Union[Tensor, OptPairTensor], edge_index: Adj,
+                edge_weight: OptTensor = None, size: Size = None) -> Tensor:
+        """"""
+        if isinstance(x, Tensor):
+            x: OptPairTensor = (x, x)
+
+        if self.heat_scale > 0.:
+            edge_index, edge_weight = _norm(edge_index,
+                                            edge_weight,
+                                            add_self_loops=False,
+                                            heat_scale=self.heat_scale)
+
+        # propagate_type: (x: OptPairTensor, edge_weight: OptTensor)
+        out = self.propagate(edge_index, x=x, edge_weight=edge_weight,
+                             size=size)
+        out = self.lin_l(out)
+
+        x_r = x[1]
+        if x_r is not None:
+            out += self.lin_r(x_r)
+
+        return out
+
+    def message(self, x_j: Tensor, edge_weight: OptTensor) -> Tensor:
+        return x_j if edge_weight is None else edge_weight.view(-1, 1) * x_j
+
+    def message_and_aggregate(self, adj_t: SparseTensor,
+                              x: OptPairTensor) -> Tensor:
+        return matmul(adj_t, x[0], reduce=self.aggr)
+
+    def __repr__(self):
+        return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
+                                   self.out_channels)
 
 
 class AddNorm(nn.Module):
