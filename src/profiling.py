@@ -8,8 +8,8 @@ from torch_geometric.data.data import Data
 from tqdm import tqdm
 
 from args_parser import parameter_parser
-#from data.dataset3 import SkeletonDataset, skeleton_parts
-#from models.net2s import DualGraphEncoder
+# from data.dataset3 import SkeletonDataset, skeleton_parts
+# from models.net2s import DualGraphEncoder
 
 from model import GraphMatchTR
 
@@ -18,9 +18,8 @@ from data.mcs import MCSDataset
 from utils import tab_printer
 import numpy as np
 
-
 # from utility.helper import load_checkpoint
-#adj_mat = skeleton_parts(cat=False).to(torch.device('cpu'))
+# adj_mat = skeleton_parts(cat=False).to(torch.device('cpu'))
 device = torch.device('cuda:0') if True and torch.cuda.is_available() else torch.device('cpu')
 args = parameter_parser()
 ds = torch.load("/home/dusko/Documents/projects/APBGCN/processed/xsub_val_ntu_60.pt")
@@ -36,21 +35,24 @@ num_batches = 100
 ds = ds[:args.batch_size * num_batches]
 total_batch_ = int(len(ds) / args.batch_size) + 1
 
+
 def transform(data, norm_metric_matrix):
-        """
+    """
         Getting ged for graph pair and grouping with data into dictionary.
+        :param norm_metric_matrix:
         :param data: Graph pair.
         :return new_data: Dictionary with data.
         """
-        new_data = dict()
+    new_data = dict()
 
-        new_data["g1"] = data[0]
-        new_data["g2"] = data[1]
+    new_data["g1"] = data[0]
+    new_data["g2"] = data[1]
 
-        normalized_ged = norm_metric_matrix[data[0]["i"].reshape(-1).tolist(), 
-                                                 data[1]["i"].reshape(-1).tolist()].tolist()
-        new_data["target"] = torch.from_numpy(np.exp([(-el) for el in normalized_ged])).view(-1).float()
-        return new_data
+    normalized_ged = norm_metric_matrix[data[0]["i"].reshape(-1).tolist(),
+                                        data[1]["i"].reshape(-1).tolist()].tolist()
+    new_data["target"] = torch.from_numpy(np.exp([(-el) for el in normalized_ged])).view(-1).float()
+    return new_data
+
 
 def time_trace_handler(p):
     print(p.key_averages(group_by_input_shape=True).table(
@@ -84,10 +86,12 @@ def run(model, dataloader, total_batch, prof, device, norm_metric_matrix):
         #                   on_trace_ready=memory_trace_handler) as prof:
         prediction = model(batch['g1'].to(device), batch['g2'].to(device))
         prof.step()
-        #prof.export_chrome_trace(osp.join(args.save_root, "time_trace_batch_" + str(i) + ".json"))
+        # prof.export_chrome_trace(osp.join(args.save_root, "time_trace_batch_" + str(i) + ".json"))
     return prediction
 
+
 test_input = transform(ds[0], norm_metric_matrix)
+
 
 def input_constructor():
     return test_input['g1'].to(device), test_input['g2'].to(device)
@@ -106,7 +110,7 @@ def _mac_ops(model, in_const):
     """
     s, t = input_constructor()
     macs, params = get_model_profile(model=model,  # model
-                                     input_res=None, #tuple(s.shape),
+                                     input_res=None,  # tuple(s.shape),
                                      # input shape or input to the in_const
                                      input_constructor=in_const,
                                      # if specified, a constructor taking input_res is used as input to the model
@@ -124,9 +128,9 @@ def _mac_ops(model, in_const):
     print('{:<30}  {:<8}'.format('Number of MACs: ', macs))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
-def mac_ops(model):
 
-    warm_up=10
+def mac_ops(model):
+    warm_up = 10
     prof = FlopsProfiler(model)
     model.eval()
 
@@ -137,24 +141,22 @@ def mac_ops(model):
 
     _ = model(test_input['g1'].to(device), test_input['g2'].to(device))
 
-
     flops = prof.get_total_flops()
     params = prof.get_total_params()
     prof.print_model_profile(profile_step=warm_up,
-                                module_depth=1,
-                                top_modules=3,
-                                detailed=True)
+                             module_depth=1,
+                             top_modules=3,
+                             detailed=True)
 
     prof.end_profile()
 
-
-    #print("{:<30}  {:<8}".format("Batch size: ", torch.max(bi).item() + 1))
+    # print("{:<30}  {:<8}".format("Batch size: ", torch.max(bi).item() + 1))
     print('{:<30}  {:<8}'.format('Number of MACs: ', flops))
     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
 
 def profile(device, args):
-    #ds = SkeletonDataset(_args.dataset_root, name='ntu_60',
+    # ds = SkeletonDataset(_args.dataset_root, name='ntu_60',
     #                     num_channels=args.in_channels, sample='val')
     # Load model
     model = GraphMatchTR(args).to(device)
@@ -197,5 +199,5 @@ def profile(device, args):
 
 if __name__ == '__main__':
     tab_printer(args)
-    #dev = torch.device('cpu')
+    # dev = torch.device('cpu')
     profile(device=device, args=args)

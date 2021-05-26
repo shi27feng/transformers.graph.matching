@@ -1,0 +1,11 @@
+torch
+networkx
+numpy
+matplotlib
+texttable
+scipy
+tqdm
+torch_sparse
+torch_scatter
+torch_geometric
+# deepspeed
