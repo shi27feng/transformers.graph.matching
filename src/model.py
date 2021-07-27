@@ -41,11 +41,10 @@ class GraphMatchTR(nn.Module):
         for i in range(num_layers):
             if i == 0 or self.args.all_batch_norm:
                 xs, xt = self.bn_[i](xs), self.bn_[i](xt)
-            xs_ = self.gnn_[i](xs, adj_s)
-            xt_ = self.gnn_[i](xt, adj_t)
-            if i is not (num_layers - 1):
-                xs_ = fn.dropout(fn.silu(xs_, inplace=True), p=self.args.dropout, training=self.training)
-                xt_ = fn.dropout(fn.silu(xt_, inplace=True), p=self.args.dropout, training=self.training)
+            xs_ = fn.dropout(fn.silu(self.gnn_[i](xs, adj_s), inplace=True),
+                             p=self.args.dropout, training=self.training)
+            xt_ = fn.dropout(fn.silu(self.gnn_[i](xt, adj_t), inplace=True),
+                             p=self.args.dropout, training=self.training)
 
             xs = self.encoder_[i]((xs_, xt_), (s.batch, t.batch))
             xt = self.encoder_[i]((xt_, xs_), (t.batch, s.batch))
