@@ -1,6 +1,6 @@
 # Graph Matching with Linear Transformers
 
-Implementation of (Deep Graph Similarity through Linear Attention and Heat Kernel)[https://openreview.net/pdf?id=V0pBm20CMdC]: Applying the cross-attention/similarity matrix of Transformer Architecture to graph matching problem
+Implementation of [Deep Graph Similarity through Linear Attention and Heat Kernel](https://openreview.net/pdf?id=V0pBm20CMdC): Applying the cross-attention/similarity matrix of Transformer Architecture to graph matching problem
 
 `matching` is not necessary to be exact, but much close sometime is good enough.
 
